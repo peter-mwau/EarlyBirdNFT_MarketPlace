@@ -1,13 +1,18 @@
-import './App.css'
+// import './App.css'
+import Navbar from './components/Navbar'
+import Home from './pages/Home'
+import { Routes, Route } from 'react-router-dom'
+
 
 function App() {
 
 
   return (
     <>
-      <div className='bg-gray-100 dark:bg-blue-400 p-5'>
-        <h1 className='text-lg font-semibold uppercase text-gray-900'>Early Bird NFT Marketplace</h1>
-      </div>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
     </>
   )
 }
