@@ -1,18 +1,18 @@
-const hre = require("hardhat");
+import hre from "hardhat";
 
-async function main(){
-
-    const EarlyBirdNFT = await ethers.getContractsFactory("EarlyBirdNFT");
-
-    const earlybirdnft = EarlyBirdNFT.deploy();
-
-    console.log("Contract Address: ", earlybirdnft.target);
-}
-
-main()
+async function main() {
+    const ERC721A = await ethers.getContractFactory("EarlyBirdNFT");
+    const erc721a = await ERC721A.deploy();
+  
+    await erc721a.deployed();
+  
+    console.log("ERC721A deployed to:", erc721a.address);
+  }
+  
+  main()
     .then(() => process.exit(0))
     .catch((error) => {
-        console.error(error);
-        process.exit(1);
-        });
-    
+      console.error(error);
+      process.exit(1);
+    });
+  

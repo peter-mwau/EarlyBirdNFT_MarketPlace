@@ -126,7 +126,7 @@ export default function Providers({ children }) {
       disconnectWallet,
     //   peopleData, // Include fetched data in context
     }),
-    [account, balance, tokenBalance, isWalletConnected]
+    [account, balance, tokenBalance, isWalletConnected, connectWallet, disconnectWallet]
   );
 
   // PropTypes

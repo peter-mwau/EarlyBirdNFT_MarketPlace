@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.24;
 
-import "@erc721a/contracts/ERC721A.sol";
+import { ERC721A } from "../External Contracts/ERC721.sol";
 import "@openzeppelin/contracts/utils/Strings.sol"; 
 
 contract EarlyBirdNFT is ERC721A {
@@ -20,8 +20,8 @@ contract EarlyBirdNFT is ERC721A {
     address public owner;
 
     // Token URI
-    string private baseTokenURI;
-    bool public revealed = false;
+    string public baseTokenURI;
+    // bool public revealed = false;
 
     //onlyowner modifier
     modifier onlyOwner(){
@@ -47,15 +47,15 @@ contract EarlyBirdNFT is ERC721A {
     //constructor
     constructor(string memory _tokenURI) ERC721A("Early Bird", "ERB"){
         owner = msg.sender;
-        basetokenURI = _tokenURI;
+        baseTokenURI = _tokenURI;
     }
 
     //function to mint NFT token
-    function mint(uint256 _quantity) external returns(bool){
+    function mint(uint256 _quantity) external payable returns(bool){
         require(_quantity + totalSupply() <= MAX_SUPPLY, "Amount too much, exceedes max supply");
         require(_quantity <= MAX_MINT, "Mint limit exceeded");
         require(msg.value >= _quantity * MINT_RATE, "Insufficient balance");
-        require(mintedAddresses[msg.sender].length <= MAX_MINT_PER_WALLET, "Sorry you have reached your max mint limit!!");
+        require(balanceOf(msg.sender) + _quantity <= MAX_MINT_PER_WALLET, "Sorry you have reached your max mint limit!!");
 
         _safeMint(msg.sender, _quantity);
 
@@ -74,11 +74,11 @@ contract EarlyBirdNFT is ERC721A {
         require(block.timestamp < _getMaxMintTime() + REFUND_PERIOD, "Refund period not yet over!");
 
 
-        (bool success, ) = payable(owner).call{value: _amount}('');
+        (bool success, ) = payable(owner).call{value: balance}('');
 
         require(success, "Withdrawal failed!!");
 
-        emit WithdrawSuccess(owner, _amount);
+        emit WithdrawSuccess(owner, balance);
 
         return true;
     }
@@ -86,12 +86,12 @@ contract EarlyBirdNFT is ERC721A {
     //refund function
     function refund(uint256 quantity) external returns(bool){
         require(quantity <= balanceOf(msg.sender), "Invalid quantity");
-        require(block.timestamp < mintTimestamp[msg.sender], "Refund period has already lapsed!!");
+        require(block.timestamp < mintingTimestamp[msg.sender], "Refund period has already lapsed!!");
 
         //burnMultiple function
         _burnMultiple(msg.sender, quantity);
 
-        const amount = quantity * MINT_RATE;
+        uint256 amount = quantity * MINT_RATE;
 
         (bool success, ) = payable(msg.sender).call{ value: amount}('');
 
@@ -122,30 +122,30 @@ contract EarlyBirdNFT is ERC721A {
 
         for (uint256 i = 0; i < totalSupply(); i++) {
             address nftOwner = ownerOf(i);
-            if (mintTimestamp[nftOwner] > maxTime) {
-                maxTime = mintTimestamp[nftOwner];
+            if (mintingTimestamp[nftOwner] > maxTime) {
+                maxTime = mintingTimestamp[nftOwner];
             }
         }
         return maxTime;
     }
 
      // Override the tokenURI function to add conceal and reveal logic
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+    // function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+    //     require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        if (!revealed) {
-            return baseTokenURI;  // Return the concealed URI before reveal
-        }
+    //     if (!revealed) {
+    //         return baseTokenURI;  // Return the concealed URI before reveal
+    //     }
 
-        // After reveal, return the token-specific URI
-        return string(abi.encodePacked(baseTokenURI, "/", tokenId.toString(), ".json"));
-    }
+    //     // After reveal, return the token-specific URI
+    //     return string(abi.encodePacked(baseTokenURI, "/", tokenId.toString(), ".json"));
+    // }
 
-    // Reveal function
-    function reveal(string memory _revealedBaseURI) external onlyOwner {
-        baseTokenURI = _revealedBaseURI;
-        revealed = true;
-    }
+    // // Reveal function
+    // function reveal(string memory _revealedBaseURI) external onlyOwner {
+    //     baseTokenURI = _revealedBaseURI;
+    //     revealed = true;
+    // }
 
     // Base URI override
     function _baseURI() internal view virtual override returns (string memory) {
