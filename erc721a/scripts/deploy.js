@@ -1,8 +1,11 @@
 import hre from "hardhat";
 
 async function main() {
-    const ERC721A = await ethers.getContractFactory("EarlyBirdNFT");
-    const erc721a = await ERC721A.deploy();
+    const ERC721A = await hre.ethers.getContractFactory("EarlyBirdNFT");
+
+    const tokenURI = "https://example.com/metadata/";
+
+    const erc721a = await ERC721A.deploy(tokenURI);
   
     await erc721a.deployed();
   

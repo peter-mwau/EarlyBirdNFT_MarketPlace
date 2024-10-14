@@ -1,60 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import WalletContext from "../src/contexts/WalletContext";
 import Web3 from "web3";
-// import ERC20 from "../../artifacts/contracts/ERC20.sol/ERC20Token.json";
 import PropTypes from "prop-types";
-// import React from "react";
-// import { getFromIPFS as fetchFromIPFS } from "../pinata";
+import EarlyBirdNFT from "./artifacts/contracts/ERC721A.sol/EarlyBirdNFT.json";
 
 export default function Providers({ children }) {
   const [account, setAccount] = useState(null);
   const [balance, setBalance] = useState("");
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [tokenBalance, setTokenBalance] = useState("0");
-//   const [peopleData, setPeopleData] = useState([]); // New state to store fetched data
+  const [web3, setWeb3] = useState(null);  // Add web3 to state
 
-//   const storedHashes = JSON.parse(localStorage.getItem("ipfsHashes") || "[]");
-//   const contractABI = ERC20.abi; // Ensure you use the correct property for ABI
-  const contractAddress = "0x9a5018929Dc48226CA9737a186a351C3866dA982";
-
-//   useEffect(() => {
-//     const fetchPeople = async () => {
-//         try {
-//             const web3 = new Web3(window.ethereum);
-//             // const contract = new web3.eth.Contract(ERC20.abi, contractAddress);
-            
-//             const peopleData = await contract.methods.getAllPeople().call();
-//             console.log("People Data:", peopleData);
-
-//             // Set state with the fetched data
-//             setPeopleData(peopleData);
-//         } catch (error) {
-//             console.error("Error fetching people:", error);
-//         }
-//     };
-
-    // Call fetchPeople when the component mounts
-//     fetchPeople();
-// }, []); // Empty dependency array to call only once when the component mounts
-
-
-
-  // Function to return data from Pinata
-//   const getFromIPFS = async () => {
-//     try {
-//       const peoplePromises = storedHashes.map(async (hash) => {
-//         const personData = await fetchFromIPFS(hash);
-//         return personData; // Return the fetched data
-//       });
-
-//       // Wait for all promises to resolve
-//       const people = await Promise.all(peoplePromises);
-//       console.log("Fetched People Data: ", people);
-//       setPeopleData(people); // Store in state
-//     } catch (error) {
-//       console.error("Error fetching data from IPFS:", error);
-//     }
-//   };
+  const contractAddress = import.meta.env.VITE_APP_CONTRACT_ADDRESS;
+  const contractABI = EarlyBirdNFT.abi;
 
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -62,16 +20,18 @@ export default function Providers({ children }) {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
-        const web3 = new Web3(window.ethereum);
-        const weiBalance = await web3.eth.getBalance(accounts[0]);
-        const balance = web3.utils.fromWei(weiBalance, "ether");
+        const web3Instance = new Web3(window.ethereum);  // Create a Web3 instance
+        setWeb3(web3Instance);  // Set Web3 instance to state
+
+        const weiBalance = await web3Instance.eth.getBalance(accounts[0]);
+        const balance = web3Instance.utils.fromWei(weiBalance, "ether");
         setBalance(balance);
         setAccount(accounts[0]);
         setIsWalletConnected(true);
 
         // Fetch custom token balance
-        const tokenContract = new web3.eth.Contract(
-        //   contractABI,
+        const tokenContract = new web3Instance.eth.Contract(
+          contractABI,
           contractAddress
         );
         const tokenBalanceRaw = await tokenContract.methods
@@ -82,13 +42,11 @@ export default function Providers({ children }) {
         const tokenDecimalsRaw  = await tokenContract.methods.decimals().call();
         console.log("Token Decimals: ", tokenDecimalsRaw );
 
-        // Convert tokenDecimals to a number
         const tokenDecimals = Number(tokenDecimalsRaw);
-        const divisor = BigInt(10 ** tokenDecimals); // Convert to BigInt for the division
+        const divisor = BigInt(10 ** tokenDecimals);
         const formattedTokenBalance = Number(tokenBalanceRaw) / Number(divisor);
         setTokenBalance(formattedTokenBalance);
 
-        console.log("Token Balance: ", formattedTokenBalance);
       } catch (error) {
         console.error("Failed to connect to MetaMask:", error);
       }
@@ -111,11 +69,10 @@ export default function Providers({ children }) {
   }, [account, balance, tokenBalance, isWalletConnected]);
 
   const disconnectWallet = () => {
-    setAccount(null); // Resets the connected account state
+    setAccount(null);
     setIsWalletConnected(false);
   };
 
-  // Memoize the context value to avoid unnecessary re-renders
   const walletContextValue = useMemo(
     () => ({
       account,
@@ -124,20 +81,10 @@ export default function Providers({ children }) {
       isWalletConnected,
       connectWallet,
       disconnectWallet,
-    //   peopleData, // Include fetched data in context
+      web3,  // Expose Web3 instance to the context
     }),
-    [account, balance, tokenBalance, isWalletConnected, connectWallet, disconnectWallet]
+    [account, balance, tokenBalance, isWalletConnected, connectWallet, disconnectWallet, web3]
   );
-
-  // PropTypes
-  Providers.propTypes = {
-    children: PropTypes.node.isRequired,
-  };
-
-  // Fetch data from IPFS when the component mounts
-//   useEffect(() => {
-//     getFromIPFS();
-//   }, []);
 
   return (
     <WalletContext.Provider value={walletContextValue}>
@@ -145,3 +92,7 @@ export default function Providers({ children }) {
     </WalletContext.Provider>
   );
 }
+
+Providers.propTypes = {
+  children: PropTypes.node.isRequired,
+};

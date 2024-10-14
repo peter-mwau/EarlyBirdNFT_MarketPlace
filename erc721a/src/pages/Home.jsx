@@ -1,8 +1,60 @@
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
+import WalletContext from "../contexts/WalletContext";
+import EarlyBirdNFT from "../artifacts/contracts/ERC721A.sol/EarlyBirdNFT.json";
 
 const Home = () => {
   const [amount, setAmount] = useState(1);
+  const [contract, setContract] = useState(null);
+  const [totalSupply, setTotalSupply] = useState(0);
+  const [success, setSuccess] = useState('');
 
+  const { account, isWalletConnected, connectWallet, web3 } = useContext(WalletContext);
+
+  const contractAddress = import.meta.env.VITE_APP_CONTRACT_ADDRESS;
+  const contractABI = EarlyBirdNFT.abi;
+
+  useEffect(() => {
+    if (account && isWalletConnected && web3) {
+      const contractInstance = new web3.eth.Contract(contractABI, contractAddress, {
+        from: account,
+      });
+      setContract(contractInstance);
+
+      const fetchTotalSupply = async () => {
+        try {
+          const totalSupply = await contractInstance.methods.totalSupply().call();
+          setTotalSupply(totalSupply);
+        } catch (error) {
+          console.error("Error fetching total supply:", error);
+        }
+      };
+
+      fetchTotalSupply();
+    }
+  }, [isWalletConnected, web3]);
+
+  const handleMint = async () => {
+    if (!isWalletConnected || !account) {
+      connectWallet();
+      return;
+    }
+
+    try {
+      const tx = await contract.methods.mint(account, amount).send({
+        value: web3.utils.toWei((0.01 * amount).toString(), "ether"),
+      });
+      setSuccess("Minting successful!");
+      console.log("Transaction Hash: ", tx);
+
+      const newTotalSupply = await contract.methods.totalSupply().call();
+      setTotalSupply(newTotalSupply);
+    } catch (error) {
+      console.error("Minting error:", error);
+      // alert("There was an error with the minting process.");
+    }
+  };
+
+  // Increment and decrement amount
   const handleIncrement = () => {
     setAmount(amount + 1);
   };
@@ -20,6 +72,7 @@ const Home = () => {
           Early Bird NFT Marketplace
         </h1>
         <div className="flex flex-col items-center justify-center">
+          {success && <div className="text-center py-2 text-green-500 font-semibold">{success}</div>}
           <div className="flex flex-col items-center justify-center p-6 bg-gray-800 rounded-lg shadow-2xl max-w-md">
             <img
               src="/EarlyBirdNFT.jpg"
@@ -32,7 +85,7 @@ const Home = () => {
                 Experience the mystery and allure of this limited-edition NFT. Only a few collectors will have the privilege of owning this digital art piece.
               </p>
             </div>
-            <h3 className="text-lg font-semibold italic text-white mb-4">Price: 0.01 ETH</h3>
+            <h3 className="text-lg font-semibold italic text-white mb-4">Price: 0.0001 ETH</h3>
             <div className="flex flex-row items-center justify-center mb-4">
               <button
                 onClick={handleDecrement}
@@ -54,10 +107,16 @@ const Home = () => {
               </button>
             </div>
             <div className="flex flex-col items-center justify-center p-4">
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white dark:text-gray-950 font-semibold hover:scale-105 hover:shadow-lg hover:shadow-purple-500/50 transition-all duration-300 rounded-lg p-3">
+              <button
+                onClick={handleMint}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white dark:text-gray-950 font-semibold hover:scale-105 hover:shadow-lg hover:shadow-purple-500/50 transition-all duration-300 rounded-lg p-3"
+              >
                 Buy NFT
               </button>
             </div>
+            <p className="text-gray-300 text-sm mt-4">
+              Total Minted: {totalSupply}
+            </p>
           </div>
         </div>
       </div>
