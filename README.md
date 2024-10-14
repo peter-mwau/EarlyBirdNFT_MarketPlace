@@ -60,3 +60,4 @@ To run the project locally, follow these steps:
 
    ```bash
    git clone https://github.com/peter-mwau/EarlyBirdNFT_MarketPlace.git
+   ```
